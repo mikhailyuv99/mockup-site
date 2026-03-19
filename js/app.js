@@ -1,5 +1,5 @@
 (function () {
-  const contentPath = 'content.json';
+  var contentPath = 'content.json';
 
   var defaultTheme = {
     heroTitle: '#ffffff',
@@ -17,29 +17,49 @@
     contactButtonText: '#0d0d0d'
   };
 
+  var sectionIds = ['hero', 'videoLoop', 'videoPlay', 'about', 'services', 'contact'];
+  var sectionEls = {};
+  var mainEl = document.querySelector('main');
+
+  sectionIds.forEach(function (id) {
+    sectionEls[id] = document.getElementById(id);
+  });
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function ensureAllInDom() {
+    sectionIds.forEach(function (id) {
+      var el = sectionEls[id];
+      if (el && el.parentNode !== mainEl) {
+        el.style.display = 'none';
+        mainEl.appendChild(el);
+      }
+    });
+  }
+
   function setText(id, value) {
     var el = document.getElementById(id);
     if (el) el.textContent = value;
   }
 
-  function setImage(id, src, alt) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.src = src || '';
-    if (alt !== undefined) el.alt = alt;
-  }
-
-  function setHeroMedia(data) {
+  function populateHero(data) {
+    if (!data.hero) return;
+    setText('hero-title', data.hero.title || '');
+    setText('hero-subtitle', data.hero.subtitle || '');
     var el = document.getElementById('hero-media');
-    if (!el || !data.hero) return;
+    if (!el) return;
     var imgSrc = data.hero.image || '';
     var html;
     if (data.hero.video) {
       html = '<video class="hero__image" poster="' + escapeHtml(imgSrc) + '" src="' + escapeHtml(data.hero.video) + '" muted loop playsinline autoplay></video>';
     } else if (data.hero.imageAvif || data.hero.imageWebp) {
       html = '<picture>';
-      if (data.hero.imageAvif) html += '<source type="image/avif" src="' + escapeHtml(data.hero.imageAvif) + '">';
-      if (data.hero.imageWebp) html += '<source type="image/webp" src="' + escapeHtml(data.hero.imageWebp) + '">';
+      if (data.hero.imageAvif) html += '<source type="image/avif" srcset="' + escapeHtml(data.hero.imageAvif) + '">';
+      if (data.hero.imageWebp) html += '<source type="image/webp" srcset="' + escapeHtml(data.hero.imageWebp) + '">';
       html += '<img class="hero__image" src="' + escapeHtml(imgSrc) + '" alt="">';
       html += '</picture>';
     } else {
@@ -48,17 +68,20 @@
     el.innerHTML = html;
   }
 
-  function setAboutMedia(data) {
+  function populateAbout(data) {
+    if (!data.about) return;
+    setText('about-title', data.about.title || '');
+    setText('about-text', data.about.text || '');
     var el = document.getElementById('about-media');
-    if (!el || !data.about) return;
+    if (!el) return;
     var imgSrc = data.about.image || '';
     var html;
     if (data.about.video) {
       html = '<video class="about__image" poster="' + escapeHtml(imgSrc) + '" src="' + escapeHtml(data.about.video) + '" muted loop playsinline controls></video>';
     } else if (data.about.imageAvif || data.about.imageWebp) {
       html = '<picture>';
-      if (data.about.imageAvif) html += '<source type="image/avif" src="' + escapeHtml(data.about.imageAvif) + '">';
-      if (data.about.imageWebp) html += '<source type="image/webp" src="' + escapeHtml(data.about.imageWebp) + '">';
+      if (data.about.imageAvif) html += '<source type="image/avif" srcset="' + escapeHtml(data.about.imageAvif) + '">';
+      if (data.about.imageWebp) html += '<source type="image/webp" srcset="' + escapeHtml(data.about.imageWebp) + '">';
       html += '<img class="about__image" src="' + escapeHtml(imgSrc) + '" alt="">';
       html += '</picture>';
     } else {
@@ -67,44 +90,59 @@
     el.innerHTML = html;
   }
 
-  function setVideoLoop(data) {
-    var wrap = document.getElementById('videoLoop');
-    var mediaEl = document.getElementById('video-loop-media');
-    var titleEl = document.getElementById('video-loop-title');
-    if (!wrap || !mediaEl || !titleEl) return;
-    if (!data.videoLoop) {
-      wrap.style.display = 'none';
-      return;
-    }
-    var v = data.videoLoop;
-    if (titleEl) titleEl.textContent = v.title || '';
-    if (v.video) {
-      mediaEl.innerHTML = '<video src="' + escapeHtml(v.video) + '" muted loop playsinline autoplay></video>';
-      wrap.style.display = '';
-    } else {
-      mediaEl.innerHTML = '';
-      wrap.style.display = '';
+  function populateServices(data) {
+    if (!data.services) return;
+    setText('services-title', data.services.title || '');
+    var listEl = document.getElementById('services-list');
+    if (listEl && Array.isArray(data.services.items)) {
+      listEl.innerHTML = data.services.items
+        .map(function (item) {
+          return '<div class="service-card">' +
+            '<h3 class="service-card__title">' + escapeHtml(item.title || '') + '</h3>' +
+            '<p class="service-card__description">' + escapeHtml(item.description || '') + '</p>' +
+            '</div>';
+        })
+        .join('');
     }
   }
 
-  function setVideoPlay(data) {
-    var wrap = document.getElementById('videoPlay');
-    var mediaEl = document.getElementById('video-play-media');
-    var titleEl = document.getElementById('video-play-title');
-    if (!wrap || !mediaEl || !titleEl) return;
-    if (!data.videoPlay) {
-      wrap.style.display = 'none';
-      return;
+  function populateContact(data) {
+    if (!data.contact) return;
+    setText('contact-title', data.contact.title || '');
+    setText('contact-text', data.contact.text || '');
+    var cta = document.getElementById('contact-cta');
+    if (cta) {
+      cta.textContent = data.contact.buttonLabel || 'Contact';
+      cta.href = data.contact.email ? 'mailto:' + data.contact.email : '#';
     }
-    var v = data.videoPlay;
-    titleEl.textContent = v.title || '';
-    if (v.video) {
-      var posterAttr = v.poster ? ' poster="' + escapeHtml(v.poster) + '"' : '';
-      mediaEl.innerHTML = '<video src="' + escapeHtml(v.video) + '"' + posterAttr + ' controls playsinline></video>';
-      wrap.style.display = '';
-    } else {
-      mediaEl.innerHTML = '';
-      wrap.style.display = '';
+  }
+
+  function populateVideoLoop(data) {
+    var titleEl = document.getElementById('video-loop-title');
+    var mediaEl = document.getElementById('video-loop-media');
+    if (!data.videoLoop) return;
+    if (titleEl) titleEl.textContent = data.videoLoop.title || '';
+    if (mediaEl) {
+      if (data.videoLoop.video) {
+        mediaEl.innerHTML = '<video src="' + escapeHtml(data.videoLoop.video) + '" muted loop playsinline autoplay></video>';
+      } else {
+        mediaEl.innerHTML = '';
+      }
+    }
+  }
+
+  function populateVideoPlay(data) {
+    var titleEl = document.getElementById('video-play-title');
+    var mediaEl = document.getElementById('video-play-media');
+    if (!data.videoPlay) return;
+    if (titleEl) titleEl.textContent = data.videoPlay.title || '';
+    if (mediaEl) {
+      if (data.videoPlay.video) {
+        var posterAttr = data.videoPlay.poster ? ' poster="' + escapeHtml(data.videoPlay.poster) + '"' : '';
+        mediaEl.innerHTML = '<video src="' + escapeHtml(data.videoPlay.video) + '"' + posterAttr + ' controls playsinline preload="metadata"></video>';
+      } else {
+        mediaEl.innerHTML = '';
+      }
     }
   }
 
@@ -116,7 +154,8 @@
     if (el = document.getElementById('hero-subtitle')) el.style.color = t.heroSubtitle;
     if (el = document.getElementById('about-title')) el.style.color = t.aboutTitle;
     if (el = document.getElementById('about-text')) el.style.color = t.aboutText;
-    if (el = document.getElementById('services')) el.style.background = t.servicesBg;
+    var svcEl = sectionEls['services'];
+    if (svcEl) svcEl.style.background = t.servicesBg;
     if (el = document.getElementById('services-title')) el.style.color = t.servicesTitle;
     var cards = document.querySelectorAll('.service-card');
     for (var i = 0; i < cards.length; i++) {
@@ -134,72 +173,42 @@
     }
   }
 
-  var sectionIds = ['hero', 'videoLoop', 'videoPlay', 'about', 'services', 'contact'];
-  var sectionElements = {};
-  sectionIds.forEach(function (id) {
-    sectionElements[id] = document.getElementById(id);
-  });
-
   function renderPage(pageData, theme) {
-    if (!pageData) return;
-    var order = pageData.sectionOrder && pageData.sectionOrder.length ? pageData.sectionOrder : ['hero', 'about', 'services', 'contact'];
+    if (!pageData || !mainEl) return;
+
+    var order = pageData.sectionOrder && pageData.sectionOrder.length
+      ? pageData.sectionOrder
+      : ['hero', 'about', 'services', 'contact'];
     order = order.filter(function (id) { return pageData[id] != null; });
 
-    if (pageData.hero) {
-      setText('hero-title', pageData.hero.title || '');
-      setText('hero-subtitle', pageData.hero.subtitle || '');
-      setHeroMedia(pageData);
-    }
-    if (pageData.about) {
-      setText('about-title', pageData.about.title || '');
-      setText('about-text', pageData.about.text || '');
-      setAboutMedia(pageData);
-    }
-    if (pageData.services) {
-      setText('services-title', pageData.services.title || '');
-      var listEl = document.getElementById('services-list');
-      if (listEl && Array.isArray(pageData.services.items)) {
-        listEl.innerHTML = pageData.services.items
-          .map(function (item) {
-            return '<div class="service-card">' +
-              '<h3 class="service-card__title">' + escapeHtml(item.title || '') + '</h3>' +
-              '<p class="service-card__description">' + escapeHtml(item.description || '') + '</p>' +
-              '</div>';
-          })
-          .join('');
-      }
-    }
-    if (pageData.contact) {
-      setText('contact-title', pageData.contact.title || '');
-      setText('contact-text', pageData.contact.text || '');
-      var cta = document.getElementById('contact-cta');
-      if (cta) {
-        cta.textContent = pageData.contact.buttonLabel || 'Contact';
-        cta.href = pageData.contact.email ? 'mailto:' + pageData.contact.email : '#';
-      }
-    }
-    setVideoLoop(pageData);
-    setVideoPlay(pageData);
+    ensureAllInDom();
+
+    populateHero(pageData);
+    populateAbout(pageData);
+    populateServices(pageData);
+    populateContact(pageData);
+    populateVideoLoop(pageData);
+    populateVideoPlay(pageData);
     if (theme) applyTheme(theme);
 
-    var main = document.querySelector('main');
-    if (main) {
-      sectionIds.forEach(function (id) {
-        var el = sectionElements[id];
-        if (el && el.parentNode === main) main.removeChild(el);
-      });
-      order.forEach(function (id) {
-        var el = sectionElements[id];
-        if (el) {
-          el.style.display = '';
-          main.appendChild(el);
-        }
-      });
-      sectionIds.forEach(function (id) {
-        var el = sectionElements[id];
-        if (el && order.indexOf(id) === -1) el.style.display = 'none';
-      });
-    }
+    sectionIds.forEach(function (id) {
+      var el = sectionEls[id];
+      if (el && el.parentNode === mainEl) mainEl.removeChild(el);
+    });
+
+    order.forEach(function (id) {
+      var el = sectionEls[id];
+      if (el) {
+        el.style.display = '';
+        mainEl.appendChild(el);
+      }
+    });
+
+    sectionIds.forEach(function (id) {
+      if (order.indexOf(id) === -1 && sectionEls[id]) {
+        sectionEls[id].style.display = 'none';
+      }
+    });
   }
 
   function renderContent(data) {
@@ -211,18 +220,13 @@
     if (isMultiPage) {
       if (nav) nav.removeAttribute('hidden');
       var pageOrder = data.pageOrder && data.pageOrder.length ? data.pageOrder : Object.keys(data.pages);
+
       var getPage = function () {
-        var hash = (window.location.hash || '#index').replace(/^#/, '') || 'index';
+        var hash = (window.location.hash || '').replace(/^#/, '') || pageOrder[0] || 'index';
         return pageOrder.indexOf(hash) !== -1 ? hash : pageOrder[0] || 'index';
       };
-      var currentPage = getPage();
-      renderPage(data.pages[currentPage], data.theme);
-      if (nav) {
-        [].forEach.call(nav.querySelectorAll('.site-nav__link'), function (link) {
-          link.classList.toggle('active', link.getAttribute('data-page') === currentPage);
-        });
-      }
-      window.onhashchange = function () {
+
+      var showPage = function () {
         var slug = getPage();
         renderPage(data.pages[slug], data.theme);
         if (nav) {
@@ -230,18 +234,16 @@
             link.classList.toggle('active', link.getAttribute('data-page') === slug);
           });
         }
+        window.scrollTo(0, 0);
       };
+
+      showPage();
+      window.addEventListener('hashchange', showPage);
       return;
     }
 
     if (nav) nav.setAttribute('hidden', '');
     renderPage(data, data.theme);
-  }
-
-  function escapeHtml(str) {
-    var div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
   }
 
   fetch(contentPath)
