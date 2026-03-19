@@ -31,5 +31,20 @@
     "text": "Un projet en tête ? Parlons-en.",
     "email": "contact@exemple.fr",
     "buttonLabel": "Nous contacter"
+  },
+  "theme": {
+    "heroTitle": "#ffffff",
+    "heroSubtitle": "rgba(255,255,255,0.9)",
+    "aboutTitle": "#e8e8e8",
+    "aboutText": "#a0a0a0",
+    "servicesBg": "#141414",
+    "servicesTitle": "#e8e8e8",
+    "serviceCardBg": "#1a1a1a",
+    "serviceCardTitle": "#ffffff",
+    "serviceCardText": "#888888",
+    "contactTitle": "#e8e8e8",
+    "contactText": "#a0a0a0",
+    "contactButtonBg": "#c9a227",
+    "contactButtonText": "#0d0d0d"
   }
 }
