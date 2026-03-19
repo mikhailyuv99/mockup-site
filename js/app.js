@@ -137,16 +137,10 @@
 
     applyTheme(data.theme);
 
-    var sectionIds = ['hero', 'about', 'services', 'contact'];
-    var rawOrder = data.sectionOrder && data.sectionOrder.length ? data.sectionOrder : sectionIds;
-    var effectiveOrder = rawOrder.filter(function (id) { return data[id] != null; });
+    var order = data.sectionOrder && data.sectionOrder.length ? data.sectionOrder : ['hero', 'about', 'services', 'contact'];
     var main = document.querySelector('main');
     if (main) {
-      sectionIds.forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el && el.parentNode === main) main.removeChild(el);
-      });
-      effectiveOrder.forEach(function (id) {
+      order.forEach(function (id) {
         var el = document.getElementById(id);
         if (el) main.appendChild(el);
       });
