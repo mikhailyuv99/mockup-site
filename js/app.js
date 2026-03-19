@@ -46,6 +46,22 @@
     if (el) el.textContent = value;
   }
 
+  function objPosStyle(pos) {
+    if (!pos) return '';
+    return ' style="object-position:' + pos.x + '% ' + pos.y + '%"';
+  }
+
+  function applyContentPosition(sectionId, pos) {
+    var contentEl = document.querySelector('#' + sectionId + ' .hero__content, #' + sectionId + ' .about__text, #' + sectionId + ' .video-loop__title, #' + sectionId + ' .video-play__title, #' + sectionId + ' .contact__title');
+    if (!contentEl || !pos) return;
+    var parent = contentEl.parentElement;
+    if (parent) parent.style.position = 'relative';
+    contentEl.style.position = 'absolute';
+    contentEl.style.left = pos.x + '%';
+    contentEl.style.top = pos.y + '%';
+    contentEl.style.transform = 'translate(-50%, -50%)';
+  }
+
   function populateHero(data) {
     if (!data.hero) return;
     setText('hero-title', data.hero.title || '');
@@ -53,19 +69,21 @@
     var el = document.getElementById('hero-media');
     if (!el) return;
     var imgSrc = data.hero.image || '';
+    var imgStyle = objPosStyle(data.hero.imagePosition);
     var html;
     if (data.hero.video) {
-      html = '<video class="hero__image" poster="' + escapeHtml(imgSrc) + '" src="' + escapeHtml(data.hero.video) + '" muted loop playsinline autoplay></video>';
+      html = '<video class="hero__image"' + imgStyle + ' poster="' + escapeHtml(imgSrc) + '" src="' + escapeHtml(data.hero.video) + '" muted loop playsinline autoplay></video>';
     } else if (data.hero.imageAvif || data.hero.imageWebp) {
       html = '<picture>';
       if (data.hero.imageAvif) html += '<source type="image/avif" srcset="' + escapeHtml(data.hero.imageAvif) + '">';
       if (data.hero.imageWebp) html += '<source type="image/webp" srcset="' + escapeHtml(data.hero.imageWebp) + '">';
-      html += '<img class="hero__image" src="' + escapeHtml(imgSrc) + '" alt="">';
+      html += '<img class="hero__image"' + imgStyle + ' src="' + escapeHtml(imgSrc) + '" alt="">';
       html += '</picture>';
     } else {
-      html = '<img class="hero__image" src="' + escapeHtml(imgSrc) + '" alt="">';
+      html = '<img class="hero__image"' + imgStyle + ' src="' + escapeHtml(imgSrc) + '" alt="">';
     }
     el.innerHTML = html;
+    if (data.hero.contentPosition) applyContentPosition('hero', data.hero.contentPosition);
   }
 
   function populateAbout(data) {
@@ -75,19 +93,21 @@
     var el = document.getElementById('about-media');
     if (!el) return;
     var imgSrc = data.about.image || '';
+    var imgStyle = objPosStyle(data.about.imagePosition);
     var html;
     if (data.about.video) {
-      html = '<video class="about__image" poster="' + escapeHtml(imgSrc) + '" src="' + escapeHtml(data.about.video) + '" muted loop playsinline controls></video>';
+      html = '<video class="about__image"' + imgStyle + ' poster="' + escapeHtml(imgSrc) + '" src="' + escapeHtml(data.about.video) + '" muted loop playsinline controls></video>';
     } else if (data.about.imageAvif || data.about.imageWebp) {
       html = '<picture>';
       if (data.about.imageAvif) html += '<source type="image/avif" srcset="' + escapeHtml(data.about.imageAvif) + '">';
       if (data.about.imageWebp) html += '<source type="image/webp" srcset="' + escapeHtml(data.about.imageWebp) + '">';
-      html += '<img class="about__image" src="' + escapeHtml(imgSrc) + '" alt="">';
+      html += '<img class="about__image"' + imgStyle + ' src="' + escapeHtml(imgSrc) + '" alt="">';
       html += '</picture>';
     } else {
-      html = '<img class="about__image" src="' + escapeHtml(imgSrc) + '" alt="">';
+      html = '<img class="about__image"' + imgStyle + ' src="' + escapeHtml(imgSrc) + '" alt="">';
     }
     el.innerHTML = html;
+    if (data.about.contentPosition) applyContentPosition('about', data.about.contentPosition);
   }
 
   function populateServices(data) {
@@ -115,6 +135,7 @@
       cta.textContent = data.contact.buttonLabel || 'Contact';
       cta.href = data.contact.email ? 'mailto:' + data.contact.email : '#';
     }
+    if (data.contact.contentPosition) applyContentPosition('contact', data.contact.contentPosition);
   }
 
   function populateVideoLoop(data) {
@@ -124,11 +145,13 @@
     if (titleEl) titleEl.textContent = data.videoLoop.title || '';
     if (mediaEl) {
       if (data.videoLoop.video) {
-        mediaEl.innerHTML = '<video src="' + escapeHtml(data.videoLoop.video) + '" muted loop playsinline autoplay></video>';
+        var imgStyle = objPosStyle(data.videoLoop.imagePosition);
+        mediaEl.innerHTML = '<video' + imgStyle + ' src="' + escapeHtml(data.videoLoop.video) + '" muted loop playsinline autoplay></video>';
       } else {
         mediaEl.innerHTML = '';
       }
     }
+    if (data.videoLoop.contentPosition) applyContentPosition('videoLoop', data.videoLoop.contentPosition);
   }
 
   function populateVideoPlay(data) {
@@ -139,11 +162,13 @@
     if (mediaEl) {
       if (data.videoPlay.video) {
         var posterAttr = data.videoPlay.poster ? ' poster="' + escapeHtml(data.videoPlay.poster) + '"' : '';
-        mediaEl.innerHTML = '<video src="' + escapeHtml(data.videoPlay.video) + '"' + posterAttr + ' controls playsinline preload="metadata"></video>';
+        var imgStyle = objPosStyle(data.videoPlay.imagePosition);
+        mediaEl.innerHTML = '<video' + imgStyle + ' src="' + escapeHtml(data.videoPlay.video) + '"' + posterAttr + ' controls playsinline preload="metadata"></video>';
       } else {
         mediaEl.innerHTML = '';
       }
     }
+    if (data.videoPlay.contentPosition) applyContentPosition('videoPlay', data.videoPlay.contentPosition);
   }
 
   function applyTheme(theme) {
