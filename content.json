@@ -1,0 +1,35 @@
+{
+  "hero": {
+    "title": "Bienvenue chez nous",
+    "subtitle": "Nous créons des contenus qui marquent les esprits.",
+    "image": "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=1200&q=80"
+  },
+  "about": {
+    "title": "À propos",
+    "text": "Fondée par des passionnés d'image et de son, notre agence accompagne les marques et les artistes dans la réalisation de projets audiovisuels sur mesure. Du concept à la post-production, nous donnons vie à vos idées.",
+    "image": "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&q=80"
+  },
+  "services": {
+    "title": "Nos services",
+    "items": [
+      {
+        "title": "Production vidéo",
+        "description": "Clip, pub, reportage — nous gérons toute la chaîne de production."
+      },
+      {
+        "title": "Motion design",
+        "description": "Animations et identités visuelles animées pour vos supports."
+      },
+      {
+        "title": "Création sonore",
+        "description": "Musique originale, sound design et mixage pour l'image."
+      }
+    ]
+  },
+  "contact": {
+    "title": "Travaillons ensemble",
+    "text": "Un projet en tête ? Parlons-en.",
+    "email": "contact@exemple.fr",
+    "buttonLabel": "Nous contacter"
+  }
+}
