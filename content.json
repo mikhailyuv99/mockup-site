@@ -1,47 +1,47 @@
 {
-  "hero": {
-    "title": "Bienvenue chez nous",
-    "subtitle": "Nous créons des contenus qui marquent les esprits.",
-    "image": "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=1200&q=80"
-  },
-  "about": {
-    "title": "À propos",
-    "text": "Fondée par des passionnés d'image et de son, notre agence accompagne les marques et les artistes dans la réalisation de projets audiovisuels sur mesure. Du concept à la post-production, nous donnons vie à vos idées.",
-    "image": "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&q=80"
-  },
-  "services": {
-    "title": "Nos services",
-    "items": [
-      {
-        "title": "Production vidéo",
-        "description": "Clip, pub, reportage — nous gérons toute la chaîne de production."
+  "pageOrder": ["index", "about", "contact"],
+  "pages": {
+    "index": {
+      "sectionOrder": ["hero", "videoLoop", "contact"],
+      "hero": {
+        "title": "Bienvenue chez nous",
+        "subtitle": "Nous créons des contenus qui marquent les esprits.",
+        "image": "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=1200&q=80"
       },
-      {
-        "title": "Motion design",
-        "description": "Animations et identités visuelles animées pour vos supports."
+      "videoLoop": {
+        "title": "Notre univers",
+        "video": ""
       },
-      {
-        "title": "Création sonore",
-        "description": "Musique originale, sound design et mixage pour l'image."
+      "contact": {
+        "title": "Travaillons ensemble",
+        "text": "Un projet en tête ? Parlons-en.",
+        "email": "contact@exemple.fr",
+        "buttonLabel": "Nous contacter"
       }
-    ]
-  },
-  "contact": {
-    "title": "Travaillons ensemble",
-    "text": "Un projet en tête ? Parlons-en.",
-    "email": "contact@exemple.fr",
-    "buttonLabel": "Nous contacter"
+    },
+    "about": {
+      "sectionOrder": ["about"],
+      "about": {
+        "title": "À propos",
+        "text": "Fondée par des passionnés d'image et de son, notre agence accompagne les marques et les artistes dans la réalisation de projets audiovisuels sur mesure. Du concept à la post-production, nous donnons vie à vos idées.",
+        "image": "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&q=80"
+      }
+    },
+    "contact": {
+      "sectionOrder": ["contact"],
+      "contact": {
+        "title": "Travaillons ensemble",
+        "text": "Un projet en tête ? Parlons-en.",
+        "email": "contact@exemple.fr",
+        "buttonLabel": "Nous contacter"
+      }
+    }
   },
   "theme": {
     "heroTitle": "#ffffff",
     "heroSubtitle": "rgba(255,255,255,0.9)",
     "aboutTitle": "#e8e8e8",
     "aboutText": "#a0a0a0",
-    "servicesBg": "#141414",
-    "servicesTitle": "#e8e8e8",
-    "serviceCardBg": "#1a1a1a",
-    "serviceCardTitle": "#ffffff",
-    "serviceCardText": "#888888",
     "contactTitle": "#e8e8e8",
     "contactText": "#a0a0a0",
     "contactButtonBg": "#c9a227",

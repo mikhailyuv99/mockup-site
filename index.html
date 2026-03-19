@@ -10,8 +10,13 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+  <nav class="site-nav" id="site-nav" aria-label="Pages" hidden>
+    <a href="#index" class="site-nav__link" data-page="index">Accueil</a>
+    <a href="#about" class="site-nav__link" data-page="about">À propos</a>
+    <a href="#contact" class="site-nav__link" data-page="contact">Contact</a>
+  </nav>
   <main>
-    <header class="hero" id="hero" role="banner">
+    <header class="hero" id="hero" role="banner" data-section="hero">
       <div class="hero__bg">
         <div id="hero-media"></div>
       </div>
@@ -21,7 +26,12 @@
       </div>
     </header>
 
-    <section class="about" id="about">
+    <section class="video-loop" id="video-loop" data-section="videoLoop" aria-label="Vidéo en boucle">
+      <div class="video-loop__overlay"></div>
+      <div id="video-loop-media" class="video-loop__media"></div>
+      <h2 class="video-loop__title" id="video-loop-title"></h2>
+    </section>
+    <section class="about" id="about" data-section="about">
       <div class="about__grid">
         <div class="about__media">
           <div id="about-media"></div>
@@ -33,12 +43,12 @@
       </div>
     </section>
 
-    <section class="services" id="services">
+    <section class="services" id="services" data-section="services">
       <h2 class="services__title" id="services-title"></h2>
       <div class="services__list" id="services-list"></div>
     </section>
 
-    <section class="contact" id="contact">
+    <section class="contact" id="contact" data-section="contact">
       <h2 class="contact__title" id="contact-title"></h2>
       <p class="contact__text" id="contact-text"></p>
       <a class="contact__cta" href="#" id="contact-cta"></a>

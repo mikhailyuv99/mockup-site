@@ -67,6 +67,26 @@
     el.innerHTML = html;
   }
 
+  function setVideoLoop(data) {
+    var wrap = document.getElementById('video-loop');
+    var mediaEl = document.getElementById('video-loop-media');
+    var titleEl = document.getElementById('video-loop-title');
+    if (!wrap || !mediaEl || !titleEl) return;
+    if (!data.videoLoop) {
+      wrap.style.display = 'none';
+      return;
+    }
+    var v = data.videoLoop;
+    if (titleEl) titleEl.textContent = v.title || '';
+    if (v.video) {
+      mediaEl.innerHTML = '<video src="' + escapeHtml(v.video) + '" muted loop playsinline autoplay></video>';
+      wrap.style.display = '';
+    } else {
+      mediaEl.innerHTML = '';
+      wrap.style.display = '';
+    }
+  }
+
   function applyTheme(theme) {
     if (!theme) return;
     var t = Object.assign({}, defaultTheme, theme);
@@ -93,58 +113,107 @@
     }
   }
 
-  function renderContent(data) {
-    if (!data) return;
+  var sectionIds = ['hero', 'videoLoop', 'about', 'services', 'contact'];
 
-    if (data.hero) {
-      setText('hero-title', data.hero.title || '');
-      setText('hero-subtitle', data.hero.subtitle || '');
-      setHeroMedia(data);
+  function setSectionVisibility(order, data) {
+    sectionIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var inOrder = order.indexOf(id) !== -1;
+      var hasData = data[id] != null;
+      el.style.display = inOrder && hasData ? '' : 'none';
+    });
+  }
+
+  function renderPage(pageData, theme) {
+    if (!pageData) return;
+    var order = pageData.sectionOrder && pageData.sectionOrder.length ? pageData.sectionOrder : ['hero', 'about', 'services', 'contact'];
+    order = order.filter(function (id) { return pageData[id] != null; });
+
+    if (pageData.hero) {
+      setText('hero-title', pageData.hero.title || '');
+      setText('hero-subtitle', pageData.hero.subtitle || '');
+      setHeroMedia(pageData);
     }
-
-    if (data.about) {
-      setText('about-title', data.about.title || '');
-      setText('about-text', data.about.text || '');
-      setAboutMedia(data);
+    if (pageData.about) {
+      setText('about-title', pageData.about.title || '');
+      setText('about-text', pageData.about.text || '');
+      setAboutMedia(pageData);
     }
-
-    if (data.services) {
-      setText('services-title', data.services.title || '');
+    if (pageData.services) {
+      setText('services-title', pageData.services.title || '');
       var listEl = document.getElementById('services-list');
-      if (listEl && Array.isArray(data.services.items)) {
-        listEl.innerHTML = data.services.items
-          .map(
-            function (item) {
-              return '<div class="service-card">' +
-                '<h3 class="service-card__title">' + escapeHtml(item.title || '') + '</h3>' +
-                '<p class="service-card__description">' + escapeHtml(item.description || '') + '</p>' +
-                '</div>';
-            }
-          )
+      if (listEl && Array.isArray(pageData.services.items)) {
+        listEl.innerHTML = pageData.services.items
+          .map(function (item) {
+            return '<div class="service-card">' +
+              '<h3 class="service-card__title">' + escapeHtml(item.title || '') + '</h3>' +
+              '<p class="service-card__description">' + escapeHtml(item.description || '') + '</p>' +
+              '</div>';
+          })
           .join('');
       }
     }
-
-    if (data.contact) {
-      setText('contact-title', data.contact.title || '');
-      setText('contact-text', data.contact.text || '');
+    if (pageData.contact) {
+      setText('contact-title', pageData.contact.title || '');
+      setText('contact-text', pageData.contact.text || '');
       var cta = document.getElementById('contact-cta');
       if (cta) {
-        cta.textContent = data.contact.buttonLabel || 'Contact';
-        cta.href = data.contact.email ? 'mailto:' + data.contact.email : '#';
+        cta.textContent = pageData.contact.buttonLabel || 'Contact';
+        cta.href = pageData.contact.email ? 'mailto:' + pageData.contact.email : '#';
       }
     }
+    setVideoLoop(pageData);
+    if (theme) applyTheme(theme);
+    setSectionVisibility(order, pageData);
 
-    applyTheme(data.theme);
-
-    var order = data.sectionOrder && data.sectionOrder.length ? data.sectionOrder : ['hero', 'about', 'services', 'contact'];
     var main = document.querySelector('main');
     if (main) {
+      sectionIds.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && el.parentNode === main) main.removeChild(el);
+      });
       order.forEach(function (id) {
         var el = document.getElementById(id);
-        if (el) main.appendChild(el);
+        if (el && pageData[id] != null) main.appendChild(el);
       });
     }
+  }
+
+  function renderContent(data) {
+    if (!data) return;
+
+    var nav = document.getElementById('site-nav');
+    var isMultiPage = data.pages && typeof data.pages === 'object' && Object.keys(data.pages).length > 0;
+
+    if (isMultiPage) {
+      if (nav) nav.removeAttribute('hidden');
+      var pageOrder = data.pageOrder && data.pageOrder.length ? data.pageOrder : Object.keys(data.pages);
+      var getPage = function () {
+        var hash = (window.location.hash || '#index').replace(/^#/, '') || 'index';
+        return pageOrder.indexOf(hash) !== -1 ? hash : pageOrder[0] || 'index';
+      };
+      var currentPage = getPage();
+      renderPage(data.pages[currentPage], data.theme);
+      if (nav) {
+        [].forEach.call(nav.querySelectorAll('.site-nav__link'), function (link) {
+          link.classList.toggle('active', link.getAttribute('data-page') === currentPage);
+        });
+      }
+      window.onhashchange = function () {
+        var slug = getPage();
+        renderPage(data.pages[slug], data.theme);
+        if (nav) {
+          [].forEach.call(nav.querySelectorAll('.site-nav__link'), function (link) {
+            link.classList.toggle('active', link.getAttribute('data-page') === slug);
+          });
+        }
+      };
+      return;
+    }
+
+    if (nav) nav.setAttribute('hidden', '');
+    renderPage(data, data.theme);
   }
 
   function escapeHtml(str) {
