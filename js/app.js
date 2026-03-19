@@ -135,16 +135,10 @@
   }
 
   var sectionIds = ['hero', 'videoLoop', 'videoPlay', 'about', 'services', 'contact'];
-
-  function setSectionVisibility(order, data) {
-    sectionIds.forEach(function (id) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      var inOrder = order.indexOf(id) !== -1;
-      var hasData = data[id] != null;
-      el.style.display = inOrder && hasData ? '' : 'none';
-    });
-  }
+  var sectionElements = {};
+  sectionIds.forEach(function (id) {
+    sectionElements[id] = document.getElementById(id);
+  });
 
   function renderPage(pageData, theme) {
     if (!pageData) return;
@@ -187,17 +181,23 @@
     setVideoLoop(pageData);
     setVideoPlay(pageData);
     if (theme) applyTheme(theme);
-    setSectionVisibility(order, pageData);
 
     var main = document.querySelector('main');
     if (main) {
       sectionIds.forEach(function (id) {
-        var el = document.getElementById(id);
+        var el = sectionElements[id];
         if (el && el.parentNode === main) main.removeChild(el);
       });
       order.forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el && pageData[id] != null) main.appendChild(el);
+        var el = sectionElements[id];
+        if (el) {
+          el.style.display = '';
+          main.appendChild(el);
+        }
+      });
+      sectionIds.forEach(function (id) {
+        var el = sectionElements[id];
+        if (el && order.indexOf(id) === -1) el.style.display = 'none';
       });
     }
   }
