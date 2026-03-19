@@ -198,6 +198,33 @@ a { color: inherit; text-decoration: none; }
   padding: 2rem;
 }
 
+/* --- Video play (click to play) --- */
+.video-play {
+  padding: 5rem 1.5rem;
+  max-width: 56rem;
+  margin: 0 auto;
+}
+.video-play__title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #e8e8e8;
+  margin: 0 0 1.5rem;
+  text-align: center;
+}
+.video-play__media {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1a1a1a;
+}
+.video-play__media video {
+  width: 100%;
+  height: auto;
+  display: block;
+  vertical-align: middle;
+}
+
 /* --- Contact --- */
 .contact {
   padding: 5rem 1.5rem;

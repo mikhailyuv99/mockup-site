@@ -2,7 +2,7 @@
   "pageOrder": ["index", "about", "contact"],
   "pages": {
     "index": {
-      "sectionOrder": ["hero", "videoLoop", "contact"],
+      "sectionOrder": ["hero", "videoLoop", "videoPlay", "contact"],
       "hero": {
         "title": "Bienvenue chez nous",
         "subtitle": "Nous créons des contenus qui marquent les esprits.",
@@ -11,6 +11,11 @@
       "videoLoop": {
         "title": "Notre univers",
         "video": ""
+      },
+      "videoPlay": {
+        "title": "Découvrez notre travail",
+        "video": "",
+        "poster": ""
       },
       "contact": {
         "title": "Travaillons ensemble",

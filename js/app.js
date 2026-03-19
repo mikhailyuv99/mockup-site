@@ -68,7 +68,7 @@
   }
 
   function setVideoLoop(data) {
-    var wrap = document.getElementById('video-loop');
+    var wrap = document.getElementById('videoLoop');
     var mediaEl = document.getElementById('video-loop-media');
     var titleEl = document.getElementById('video-loop-title');
     if (!wrap || !mediaEl || !titleEl) return;
@@ -80,6 +80,27 @@
     if (titleEl) titleEl.textContent = v.title || '';
     if (v.video) {
       mediaEl.innerHTML = '<video src="' + escapeHtml(v.video) + '" muted loop playsinline autoplay></video>';
+      wrap.style.display = '';
+    } else {
+      mediaEl.innerHTML = '';
+      wrap.style.display = '';
+    }
+  }
+
+  function setVideoPlay(data) {
+    var wrap = document.getElementById('videoPlay');
+    var mediaEl = document.getElementById('video-play-media');
+    var titleEl = document.getElementById('video-play-title');
+    if (!wrap || !mediaEl || !titleEl) return;
+    if (!data.videoPlay) {
+      wrap.style.display = 'none';
+      return;
+    }
+    var v = data.videoPlay;
+    titleEl.textContent = v.title || '';
+    if (v.video) {
+      var posterAttr = v.poster ? ' poster="' + escapeHtml(v.poster) + '"' : '';
+      mediaEl.innerHTML = '<video src="' + escapeHtml(v.video) + '"' + posterAttr + ' controls playsinline></video>';
       wrap.style.display = '';
     } else {
       mediaEl.innerHTML = '';
@@ -113,7 +134,7 @@
     }
   }
 
-  var sectionIds = ['hero', 'videoLoop', 'about', 'services', 'contact'];
+  var sectionIds = ['hero', 'videoLoop', 'videoPlay', 'about', 'services', 'contact'];
 
   function setSectionVisibility(order, data) {
     sectionIds.forEach(function (id) {
@@ -164,6 +185,7 @@
       }
     }
     setVideoLoop(pageData);
+    setVideoPlay(pageData);
     if (theme) applyTheme(theme);
     setSectionVisibility(order, pageData);
 
