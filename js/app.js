@@ -29,6 +29,44 @@
     if (alt !== undefined) el.alt = alt;
   }
 
+  function setHeroMedia(data) {
+    var el = document.getElementById('hero-media');
+    if (!el || !data.hero) return;
+    var imgSrc = data.hero.image || '';
+    var html;
+    if (data.hero.video) {
+      html = '<video class="hero__image" poster="' + escapeHtml(imgSrc) + '" src="' + escapeHtml(data.hero.video) + '" muted loop playsinline autoplay></video>';
+    } else if (data.hero.imageAvif || data.hero.imageWebp) {
+      html = '<picture>';
+      if (data.hero.imageAvif) html += '<source type="image/avif" src="' + escapeHtml(data.hero.imageAvif) + '">';
+      if (data.hero.imageWebp) html += '<source type="image/webp" src="' + escapeHtml(data.hero.imageWebp) + '">';
+      html += '<img class="hero__image" src="' + escapeHtml(imgSrc) + '" alt="">';
+      html += '</picture>';
+    } else {
+      html = '<img class="hero__image" src="' + escapeHtml(imgSrc) + '" alt="">';
+    }
+    el.innerHTML = html;
+  }
+
+  function setAboutMedia(data) {
+    var el = document.getElementById('about-media');
+    if (!el || !data.about) return;
+    var imgSrc = data.about.image || '';
+    var html;
+    if (data.about.video) {
+      html = '<video class="about__image" poster="' + escapeHtml(imgSrc) + '" src="' + escapeHtml(data.about.video) + '" muted loop playsinline controls></video>';
+    } else if (data.about.imageAvif || data.about.imageWebp) {
+      html = '<picture>';
+      if (data.about.imageAvif) html += '<source type="image/avif" src="' + escapeHtml(data.about.imageAvif) + '">';
+      if (data.about.imageWebp) html += '<source type="image/webp" src="' + escapeHtml(data.about.imageWebp) + '">';
+      html += '<img class="about__image" src="' + escapeHtml(imgSrc) + '" alt="">';
+      html += '</picture>';
+    } else {
+      html = '<img class="about__image" src="' + escapeHtml(imgSrc) + '" alt="">';
+    }
+    el.innerHTML = html;
+  }
+
   function applyTheme(theme) {
     if (!theme) return;
     var t = Object.assign({}, defaultTheme, theme);
@@ -61,13 +99,13 @@
     if (data.hero) {
       setText('hero-title', data.hero.title || '');
       setText('hero-subtitle', data.hero.subtitle || '');
-      setImage('hero-image', data.hero.image || '', data.hero.title || '');
+      setHeroMedia(data);
     }
 
     if (data.about) {
       setText('about-title', data.about.title || '');
       setText('about-text', data.about.text || '');
-      setImage('about-image', data.about.image || '', data.about.title || '');
+      setAboutMedia(data);
     }
 
     if (data.services) {
