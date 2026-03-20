@@ -1,5 +1,8 @@
 (function () {
   var contentPath = 'content.json';
+  /** Chargé dans l’iframe du CMS : pas de fetch, contenu poussé par postMessage (rendu = site déployé). */
+  var cmsEmbed = /[?&]cmsEmbed=1(?:&|$)/.test(window.location.search);
+  var hashChangeBound = false;
 
   var defaultTheme = {
     heroTitle: '#ffffff',
@@ -52,7 +55,7 @@
   }
 
   function applyContentPosition(sectionId, pos) {
-    var contentEl = document.querySelector('#' + sectionId + ' .hero__content, #' + sectionId + ' .about__text, #' + sectionId + ' .video-loop__title, #' + sectionId + ' .video-play__title, #' + sectionId + ' .contact__title');
+    var contentEl = document.querySelector('#' + sectionId + ' .hero__content, #' + sectionId + ' .about__text, #' + sectionId + ' .video-loop__title, #' + sectionId + ' .video-play__title, #' + sectionId + ' .contact__title, #' + sectionId + ' .services__title');
     if (!contentEl || !pos) return;
     var parent = contentEl.parentElement;
     if (parent) parent.style.position = 'relative';
@@ -124,6 +127,7 @@
         })
         .join('');
     }
+    if (data.services.contentPosition) applyContentPosition('services', data.services.contentPosition);
   }
 
   function populateContact(data) {
@@ -236,7 +240,13 @@
     });
   }
 
-  function renderContent(data) {
+  /**
+   * @param {object} data - content.json (mono ou multi-pages)
+   * @param {object} [opts]
+   * @param {string} [opts.pageSlug] - forcé depuis le CMS (parent ne peut pas toujours poser le hash cross-origin)
+   */
+  function renderContent(data, opts) {
+    opts = opts || {};
     if (!data) return;
 
     var nav = document.getElementById('site-nav');
@@ -251,8 +261,9 @@
         return pageOrder.indexOf(hash) !== -1 ? hash : pageOrder[0] || 'index';
       };
 
-      var showPage = function () {
-        var slug = getPage();
+      var showPage = function (slugOverride) {
+        var slug = slugOverride || getPage();
+        if (pageOrder.indexOf(slug) === -1) slug = pageOrder[0] || 'index';
         renderPage(data.pages[slug], data.theme);
         if (nav) {
           [].forEach.call(nav.querySelectorAll('.site-nav__link'), function (link) {
@@ -262,8 +273,14 @@
         window.scrollTo(0, 0);
       };
 
-      showPage();
-      window.addEventListener('hashchange', showPage);
+      showPage(opts.pageSlug);
+
+      if (!hashChangeBound) {
+        hashChangeBound = true;
+        window.addEventListener('hashchange', function () {
+          showPage();
+        });
+      }
       return;
     }
 
@@ -271,15 +288,43 @@
     renderPage(data, data.theme);
   }
 
-  fetch(contentPath)
-    .then(function (r) {
-      if (!r.ok) throw new Error('content.json not found');
-      return r.json();
-    })
-    .then(renderContent)
-    .catch(function (err) {
-      console.error('Failed to load content:', err);
-      setText('hero-title', 'Contenu non chargé');
-      setText('hero-subtitle', 'Vérifiez que content.json existe.');
+  function getTrustedCmsOrigin() {
+    try {
+      var m = window.location.search.match(/[?&]parentOrigin=([^&]+)/);
+      if (m) return decodeURIComponent(m[1]);
+    } catch (e1) {}
+    try {
+      if (document.referrer) return new URL(document.referrer).origin;
+    } catch (e2) {}
+    return null;
+  }
+
+  if (cmsEmbed) {
+    var trusted = getTrustedCmsOrigin();
+    window.addEventListener('message', function (e) {
+      if (trusted && e.origin !== trusted) return;
+      if (!e.data || e.data.source !== 'cms-app' || e.data.type !== 'CMS_CONTENT') return;
+      try {
+        renderContent(e.data.content, { pageSlug: e.data.pageSlug || undefined });
+        window.parent.postMessage({ source: 'cms-site', type: 'CMS_APPLIED' }, e.origin);
+      } catch (err) {
+        console.error('CMS embed apply failed:', err);
+      }
     });
+    window.parent.postMessage({ source: 'cms-site', type: 'CMS_READY' }, trusted || '*');
+  } else {
+    fetch(contentPath)
+      .then(function (r) {
+        if (!r.ok) throw new Error('content.json not found');
+        return r.json();
+      })
+      .then(function (d) {
+        renderContent(d);
+      })
+      .catch(function (err) {
+        console.error('Failed to load content:', err);
+        setText('hero-title', 'Contenu non chargé');
+        setText('hero-subtitle', 'Vérifiez que content.json existe.');
+      });
+  }
 })();
