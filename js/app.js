@@ -110,10 +110,10 @@
       html = '<picture>';
       if (data.hero.imageAvif) html += '<source type="image/avif" srcset="' + escapeHtml(resolveMediaUrl(data.hero.imageAvif) || '') + '">';
       if (data.hero.imageWebp) html += '<source type="image/webp" srcset="' + escapeHtml(resolveMediaUrl(data.hero.imageWebp) || '') + '">';
-      html += '<img class="hero__image"' + imgStyle + ' src="' + escapeHtml(imgSrc) + '" alt="">';
+      html += '<img class="hero__image"' + imgStyle + ' src="' + escapeHtml(imgSrc) + '" alt="" loading="eager" fetchpriority="high">';
       html += '</picture>';
     } else {
-      html = '<img class="hero__image"' + imgStyle + ' src="' + escapeHtml(imgSrc) + '" alt="">';
+      html = '<img class="hero__image"' + imgStyle + ' src="' + escapeHtml(imgSrc) + '" alt="" loading="eager" fetchpriority="high">';
     }
     el.innerHTML = html;
     if (data.hero.contentPosition) applyContentPosition('hero', data.hero.contentPosition);
@@ -211,6 +211,57 @@
     if (data.videoPlay.contentPosition) applyContentPosition('videoPlay', data.videoPlay.contentPosition);
   }
 
+  /** Réinitialise toutes les zones de contenu avant d’appliquer une page (évite médias/textes fantômes entre pages / messages). */
+  function clearPageSections() {
+    setText('hero-title', '');
+    setText('hero-subtitle', '');
+    var hm = document.getElementById('hero-media');
+    if (hm) hm.innerHTML = '';
+    setText('about-title', '');
+    setText('about-text', '');
+    var am = document.getElementById('about-media');
+    if (am) am.innerHTML = '';
+    setText('services-title', '');
+    var sl = document.getElementById('services-list');
+    if (sl) sl.innerHTML = '';
+    setText('contact-title', '');
+    setText('contact-text', '');
+    var ce = document.getElementById('contact-email');
+    if (ce) ce.textContent = '';
+    var cta = document.getElementById('contact-cta');
+    if (cta) {
+      cta.textContent = '';
+      cta.href = '#';
+    }
+    setText('video-loop-title', '');
+    var vlm = document.getElementById('video-loop-media');
+    if (vlm) vlm.innerHTML = '';
+    setText('video-play-title', '');
+    var vpm = document.getElementById('video-play-media');
+    if (vpm) vpm.innerHTML = '';
+  }
+
+  /** localhost / 127.0.0.1 / [::1] équivalents pour éviter de rejeter CMS_CONTENT silencieusement. */
+  function originAllowsCmsParent(actualOrigin, expectedOrigin) {
+    if (!expectedOrigin) return true;
+    if (actualOrigin === expectedOrigin) return true;
+    try {
+      var a = new URL(actualOrigin);
+      var b = new URL(expectedOrigin);
+      function normHost(h) {
+        if (h === '127.0.0.1' || h === '[::1]') return 'localhost';
+        return h;
+      }
+      return (
+        a.protocol === b.protocol &&
+        normHost(a.hostname) === normHost(b.hostname) &&
+        a.port === b.port
+      );
+    } catch (err) {
+      return false;
+    }
+  }
+
   function applyTheme(theme) {
     if (!theme) return;
     var t = Object.assign({}, defaultTheme, theme);
@@ -248,6 +299,7 @@
     order = order.filter(function (id) { return pageData[id] != null; });
 
     ensureAllInDom();
+    clearPageSections();
 
     populateHero(pageData);
     populateAbout(pageData);
@@ -552,7 +604,12 @@
     injectCmsEditStyles();
     bindCmsMediaClickOnce();
     window.addEventListener('message', function (e) {
-      if (trusted && e.origin !== trusted) return;
+      if (e.source !== window.parent) return;
+      var expectedOrigin = getTrustedCmsOrigin();
+      if (expectedOrigin && !originAllowsCmsParent(e.origin, expectedOrigin)) {
+        console.warn('[CMS embed] postMessage ignoré (origine):', e.origin, '≠', expectedOrigin);
+        return;
+      }
       if (!e.data || e.data.source !== 'cms-app' || e.data.type !== 'CMS_CONTENT') return;
       try {
         renderContent(e.data.content, { pageSlug: e.data.pageSlug || undefined });
