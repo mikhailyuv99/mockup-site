@@ -3,6 +3,9 @@
   /** Chargé dans l’iframe du CMS : pas de fetch, contenu poussé par postMessage (rendu = site déployé). */
   var cmsEmbed = /[?&]cmsEmbed=1(?:&|$)/.test(window.location.search);
   var hashChangeBound = false;
+  var embedIsMultiPage = false;
+  /** Page actuellement rendue (embed multi-pages) — peut différer du hash si le parent impose pageSlug. */
+  var embedActivePageSlug = '';
 
   var defaultTheme = {
     heroTitle: '#ffffff',
@@ -245,12 +248,131 @@
    * @param {object} [opts]
    * @param {string} [opts.pageSlug] - forcé depuis le CMS (parent ne peut pas toujours poser le hash cross-origin)
    */
+  function injectCmsEditStyles() {
+    if (!cmsEmbed || document.getElementById('cms-embed-styles')) return;
+    var s = document.createElement('style');
+    s.id = 'cms-embed-styles';
+    s.textContent =
+      '[data-cms-inline]{cursor:text;min-height:0.25em}' +
+      '[data-cms-inline]:hover{outline:1px dashed rgba(94,234,212,0.45)}' +
+      '[data-cms-inline]:focus{outline:2px solid rgba(45,212,191,0.85);outline-offset:2px}';
+    document.head.appendChild(s);
+  }
+
+  function getEmbedPageSlug() {
+    if (embedIsMultiPage) {
+      var h = (window.location.hash || '').replace(/^#/, '');
+      return embedActivePageSlug || h || 'index';
+    }
+    var h2 = (window.location.hash || '').replace(/^#/, '');
+    return h2 || undefined;
+  }
+
+  function postPatchToParent(patch) {
+    var po = getTrustedCmsOrigin();
+    window.parent.postMessage(
+      {
+        source: 'cms-site',
+        type: 'CMS_PATCH',
+        pageSlug: getEmbedPageSlug(),
+        patch: patch
+      },
+      po || '*'
+    );
+  }
+
+  function wireText(el, getPatch) {
+    if (!el) return;
+    el.setAttribute('data-cms-inline', 'true');
+    el.setAttribute('spellcheck', 'false');
+    var t;
+    function flush() {
+      clearTimeout(t);
+      var p = getPatch();
+      if (p) postPatchToParent(p);
+    }
+    el.addEventListener('input', function () {
+      clearTimeout(t);
+      t = setTimeout(flush, 450);
+    });
+    el.addEventListener('blur', flush);
+  }
+
+  function wireServicesBlock() {
+    function readServicesAndPost() {
+      var c2 = document.querySelectorAll('#services-list .service-card');
+      var it = [];
+      c2.forEach(function (card) {
+        var t2 = card.querySelector('.service-card__title');
+        var d2 = card.querySelector('.service-card__description');
+        it.push({
+          title: (t2 && t2.textContent) || '',
+          description: (d2 && d2.textContent) || ''
+        });
+      });
+      var st2 = document.getElementById('services-title');
+      return { services: { title: (st2 && st2.textContent) || '', items: it } };
+    }
+    var st = document.getElementById('services-title');
+    wireText(st, readServicesAndPost);
+    var cards = document.querySelectorAll('#services-list .service-card');
+    cards.forEach(function (card) {
+      var tt = card.querySelector('.service-card__title');
+      var dd = card.querySelector('.service-card__description');
+      wireText(tt, readServicesAndPost);
+      wireText(dd, readServicesAndPost);
+    });
+  }
+
+  function wireInlineEditing() {
+    if (!cmsEmbed) return;
+    injectCmsEditStyles();
+    wireText(document.getElementById('hero-title'), function () {
+      return { hero: { title: (document.getElementById('hero-title') || {}).textContent || '' } };
+    });
+    wireText(document.getElementById('hero-subtitle'), function () {
+      return { hero: { subtitle: (document.getElementById('hero-subtitle') || {}).textContent || '' } };
+    });
+    wireText(document.getElementById('about-title'), function () {
+      return { about: { title: (document.getElementById('about-title') || {}).textContent || '' } };
+    });
+    wireText(document.getElementById('about-text'), function () {
+      return { about: { text: (document.getElementById('about-text') || {}).textContent || '' } };
+    });
+    wireServicesBlock();
+    wireText(document.getElementById('video-loop-title'), function () {
+      return { videoLoop: { title: (document.getElementById('video-loop-title') || {}).textContent || '' } };
+    });
+    wireText(document.getElementById('video-play-title'), function () {
+      return { videoPlay: { title: (document.getElementById('video-play-title') || {}).textContent || '' } };
+    });
+    wireText(document.getElementById('contact-title'), function () {
+      return { contact: { title: (document.getElementById('contact-title') || {}).textContent || '' } };
+    });
+    wireText(document.getElementById('contact-text'), function () {
+      return { contact: { text: (document.getElementById('contact-text') || {}).textContent || '' } };
+    });
+    var cta = document.getElementById('contact-cta');
+    wireText(cta, function () {
+      var el = document.getElementById('contact-cta');
+      return { contact: { buttonLabel: (el && el.textContent) || '' } };
+    });
+  }
+
+  function scheduleInlineWire() {
+    if (!cmsEmbed) return;
+    requestAnimationFrame(function () {
+      wireInlineEditing();
+    });
+  }
+
   function renderContent(data, opts) {
     opts = opts || {};
     if (!data) return;
 
     var nav = document.getElementById('site-nav');
     var isMultiPage = data.pages && typeof data.pages === 'object' && Object.keys(data.pages).length > 0;
+    embedIsMultiPage = isMultiPage;
 
     if (isMultiPage) {
       if (nav) nav.removeAttribute('hidden');
@@ -264,7 +386,14 @@
       var showPage = function (slugOverride) {
         var slug = slugOverride || getPage();
         if (pageOrder.indexOf(slug) === -1) slug = pageOrder[0] || 'index';
+        embedActivePageSlug = slug;
         renderPage(data.pages[slug], data.theme);
+        if (cmsEmbed && slugOverride != null && String(slugOverride) !== '') {
+          try {
+            var nh = '#' + slug;
+            if (window.location.hash !== nh) history.replaceState(null, '', nh);
+          } catch (e4) {}
+        }
         if (nav) {
           [].forEach.call(nav.querySelectorAll('.site-nav__link'), function (link) {
             link.classList.toggle('active', link.getAttribute('data-page') === slug);
@@ -279,13 +408,19 @@
         hashChangeBound = true;
         window.addEventListener('hashchange', function () {
           showPage();
+          scheduleInlineWire();
+          if (cmsEmbed) {
+            window.parent.postMessage({ source: 'cms-site', type: 'CMS_PAGE', slug: getPage() }, getTrustedCmsOrigin() || '*');
+          }
         });
       }
+      scheduleInlineWire();
       return;
     }
 
     if (nav) nav.setAttribute('hidden', '');
     renderPage(data, data.theme);
+    scheduleInlineWire();
   }
 
   function getTrustedCmsOrigin() {
@@ -301,6 +436,7 @@
 
   if (cmsEmbed) {
     var trusted = getTrustedCmsOrigin();
+    injectCmsEditStyles();
     window.addEventListener('message', function (e) {
       if (trusted && e.origin !== trusted) return;
       if (!e.data || e.data.source !== 'cms-app' || e.data.type !== 'CMS_CONTENT') return;
