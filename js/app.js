@@ -3,6 +3,7 @@
   /** Chargé dans l’iframe du CMS : pas de fetch, contenu poussé par postMessage (rendu = site déployé). */
   var cmsEmbed = /[?&]cmsEmbed=1(?:&|$)/.test(window.location.search);
   var hashChangeBound = false;
+  var cmsMediaClickBound = false;
   var embedIsMultiPage = false;
   /** Page actuellement rendue (embed multi-pages) — peut différer du hash si le parent impose pageSlug. */
   var embedActivePageSlug = '';
@@ -137,6 +138,8 @@
     if (!data.contact) return;
     setText('contact-title', data.contact.title || '');
     setText('contact-text', data.contact.text || '');
+    var emailEl = document.getElementById('contact-email');
+    if (emailEl) emailEl.textContent = data.contact.email || '';
     var cta = document.getElementById('contact-cta');
     if (cta) {
       cta.textContent = data.contact.buttonLabel || 'Contact';
@@ -199,6 +202,7 @@
     }
     if (el = document.getElementById('contact-title')) el.style.color = t.contactTitle;
     if (el = document.getElementById('contact-text')) el.style.color = t.contactText;
+    if (el = document.getElementById('contact-email')) el.style.color = t.contactText;
     if (el = document.getElementById('contact-cta')) {
       el.style.background = t.contactButtonBg;
       el.style.color = t.contactButtonText;
@@ -255,8 +259,54 @@
     s.textContent =
       '[data-cms-inline]{cursor:text;min-height:0.25em}' +
       '[data-cms-inline]:hover{outline:1px dashed rgba(94,234,212,0.45)}' +
-      '[data-cms-inline]:focus{outline:2px solid rgba(45,212,191,0.85);outline-offset:2px}';
+      '[data-cms-inline]:focus{outline:2px solid rgba(45,212,191,0.85);outline-offset:2px}' +
+      '[data-cms-media]{cursor:pointer;position:relative}' +
+      '[data-cms-media]:hover{outline:2px dashed rgba(94,234,212,0.55);outline-offset:2px}' +
+      '[data-cms-media] img,[data-cms-media] video,[data-cms-media] picture,[data-cms-media] source{pointer-events:none}';
     document.head.appendChild(s);
+  }
+
+  function postUploadRequestToParent(uploadKey) {
+    var po = getTrustedCmsOrigin();
+    window.parent.postMessage(
+      { source: 'cms-site', type: 'CMS_UPLOAD_REQUEST', uploadKey: uploadKey },
+      po || '*'
+    );
+  }
+
+  function bindCmsMediaClickOnce() {
+    if (!cmsEmbed || cmsMediaClickBound) return;
+    cmsMediaClickBound = true;
+    document.addEventListener(
+      'click',
+      function (ev) {
+        if (!cmsEmbed) return;
+        var el = ev.target.closest('[data-cms-media]');
+        if (!el) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        var mid = el.getAttribute('data-cms-media');
+        var key = null;
+        if (mid === 'hero-media-zone') {
+          var boxH = el.querySelector('#hero-media');
+          key = boxH && boxH.querySelector('video') ? 'hero-video' : 'hero';
+        } else if (mid === 'about-media-zone') {
+          var boxA = el.querySelector('#about-media');
+          key = boxA && boxA.querySelector('video') ? 'about-video' : 'about';
+        } else if (mid === 'video-loop-media') key = 'videoLoop-video';
+        else if (mid === 'video-play-media') key = ev.altKey ? 'videoPlay-poster' : 'videoPlay-video';
+        if (key) postUploadRequestToParent(key);
+      },
+      true
+    );
+  }
+
+  function markCmsMediaContainers() {
+    if (!cmsEmbed) return;
+    ['hero-media-zone', 'about-media-zone', 'video-loop-media', 'video-play-media'].forEach(function (id) {
+      var n = document.getElementById(id);
+      if (n) n.setAttribute('data-cms-media', id);
+    });
   }
 
   function getEmbedPageSlug() {
@@ -283,6 +333,9 @@
 
   function wireText(el, getPatch) {
     if (!el) return;
+    if (el.getAttribute('data-cms-wired') === 'true') return;
+    el.setAttribute('data-cms-wired', 'true');
+    el.setAttribute('contenteditable', 'true');
     el.setAttribute('data-cms-inline', 'true');
     el.setAttribute('spellcheck', 'false');
     var t;
@@ -296,6 +349,11 @@
       t = setTimeout(flush, 450);
     });
     el.addEventListener('blur', flush);
+    if (el.tagName === 'A') {
+      el.addEventListener('click', function (ev) {
+        if (cmsEmbed) ev.preventDefault();
+      });
+    }
   }
 
   function wireServicesBlock() {
@@ -327,6 +385,8 @@
   function wireInlineEditing() {
     if (!cmsEmbed) return;
     injectCmsEditStyles();
+    bindCmsMediaClickOnce();
+    markCmsMediaContainers();
     wireText(document.getElementById('hero-title'), function () {
       return { hero: { title: (document.getElementById('hero-title') || {}).textContent || '' } };
     });
@@ -351,6 +411,13 @@
     });
     wireText(document.getElementById('contact-text'), function () {
       return { contact: { text: (document.getElementById('contact-text') || {}).textContent || '' } };
+    });
+    wireText(document.getElementById('contact-email'), function () {
+      var raw = (document.getElementById('contact-email') || {}).textContent || '';
+      var email = raw.replace(/\s+/g, ' ').trim();
+      var ctaEl = document.getElementById('contact-cta');
+      if (ctaEl) ctaEl.href = email ? 'mailto:' + email : '#';
+      return { contact: { email: email } };
     });
     var cta = document.getElementById('contact-cta');
     wireText(cta, function () {
@@ -437,6 +504,7 @@
   if (cmsEmbed) {
     var trusted = getTrustedCmsOrigin();
     injectCmsEditStyles();
+    bindCmsMediaClickOnce();
     window.addEventListener('message', function (e) {
       if (trusted && e.origin !== trusted) return;
       if (!e.data || e.data.source !== 'cms-app' || e.data.type !== 'CMS_CONTENT') return;
