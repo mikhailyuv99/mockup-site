@@ -38,6 +38,31 @@
     return div.innerHTML;
   }
 
+  /**
+   * Toujours résoudre les chemins médias par rapport à l’origine du site (racine), pas au path du document.
+   * Indispensable avec ?cmsEmbed=1 et pour les chemins sans « / » initial (évite images/vidéos noires).
+   */
+  function resolveMediaUrl(raw) {
+    if (raw == null || raw === '') return raw;
+    var s = String(raw).trim();
+    if (!s) return s;
+    if (/^(https?:|data:|blob:)/i.test(s)) return s;
+    if (s.indexOf('//') === 0) {
+      try {
+        return new URL('https:' + s).href;
+      } catch (e0) {
+        return raw;
+      }
+    }
+    try {
+      var origin = window.location.origin;
+      var path = s.indexOf('/') === 0 ? s : '/' + s.replace(/^\.\//, '');
+      return origin + path;
+    } catch (e1) {
+      return raw;
+    }
+  }
+
   function ensureAllInDom() {
     sectionIds.forEach(function (id) {
       var el = sectionEls[id];
@@ -75,15 +100,16 @@
     setText('hero-subtitle', data.hero.subtitle || '');
     var el = document.getElementById('hero-media');
     if (!el) return;
-    var imgSrc = data.hero.image || '';
+    var imgSrc = resolveMediaUrl(data.hero.image || '') || '';
     var imgStyle = objPosStyle(data.hero.imagePosition);
     var html;
     if (data.hero.video) {
-      html = '<video class="hero__image"' + imgStyle + ' poster="' + escapeHtml(imgSrc) + '" src="' + escapeHtml(data.hero.video) + '" muted loop playsinline autoplay preload="auto"></video>';
+      var vSrc = resolveMediaUrl(data.hero.video) || '';
+      html = '<video class="hero__image"' + imgStyle + ' poster="' + escapeHtml(imgSrc) + '" src="' + escapeHtml(vSrc) + '" muted loop playsinline autoplay preload="auto"></video>';
     } else if (data.hero.imageAvif || data.hero.imageWebp) {
       html = '<picture>';
-      if (data.hero.imageAvif) html += '<source type="image/avif" srcset="' + escapeHtml(data.hero.imageAvif) + '">';
-      if (data.hero.imageWebp) html += '<source type="image/webp" srcset="' + escapeHtml(data.hero.imageWebp) + '">';
+      if (data.hero.imageAvif) html += '<source type="image/avif" srcset="' + escapeHtml(resolveMediaUrl(data.hero.imageAvif) || '') + '">';
+      if (data.hero.imageWebp) html += '<source type="image/webp" srcset="' + escapeHtml(resolveMediaUrl(data.hero.imageWebp) || '') + '">';
       html += '<img class="hero__image"' + imgStyle + ' src="' + escapeHtml(imgSrc) + '" alt="">';
       html += '</picture>';
     } else {
@@ -99,15 +125,16 @@
     setText('about-text', data.about.text || '');
     var el = document.getElementById('about-media');
     if (!el) return;
-    var imgSrc = data.about.image || '';
+    var imgSrc = resolveMediaUrl(data.about.image || '') || '';
     var imgStyle = objPosStyle(data.about.imagePosition);
     var html;
     if (data.about.video) {
-      html = '<video class="about__image"' + imgStyle + ' poster="' + escapeHtml(imgSrc) + '" src="' + escapeHtml(data.about.video) + '" muted loop playsinline controls preload="auto"></video>';
+      var avSrc = resolveMediaUrl(data.about.video) || '';
+      html = '<video class="about__image"' + imgStyle + ' poster="' + escapeHtml(imgSrc) + '" src="' + escapeHtml(avSrc) + '" muted loop playsinline controls preload="auto"></video>';
     } else if (data.about.imageAvif || data.about.imageWebp) {
       html = '<picture>';
-      if (data.about.imageAvif) html += '<source type="image/avif" srcset="' + escapeHtml(data.about.imageAvif) + '">';
-      if (data.about.imageWebp) html += '<source type="image/webp" srcset="' + escapeHtml(data.about.imageWebp) + '">';
+      if (data.about.imageAvif) html += '<source type="image/avif" srcset="' + escapeHtml(resolveMediaUrl(data.about.imageAvif) || '') + '">';
+      if (data.about.imageWebp) html += '<source type="image/webp" srcset="' + escapeHtml(resolveMediaUrl(data.about.imageWebp) || '') + '">';
       html += '<img class="about__image"' + imgStyle + ' src="' + escapeHtml(imgSrc) + '" alt="">';
       html += '</picture>';
     } else {
@@ -156,7 +183,8 @@
     if (mediaEl) {
       if (data.videoLoop.video) {
         var imgStyle = objPosStyle(data.videoLoop.imagePosition);
-        mediaEl.innerHTML = '<video' + imgStyle + ' src="' + escapeHtml(data.videoLoop.video) + '" muted loop playsinline autoplay preload="auto"></video>';
+        var vlSrc = resolveMediaUrl(data.videoLoop.video) || '';
+        mediaEl.innerHTML = '<video' + imgStyle + ' src="' + escapeHtml(vlSrc) + '" muted loop playsinline autoplay preload="auto"></video>';
       } else {
         mediaEl.innerHTML = '';
       }
@@ -171,9 +199,11 @@
     if (titleEl) titleEl.textContent = data.videoPlay.title || '';
     if (mediaEl) {
       if (data.videoPlay.video) {
-        var posterAttr = data.videoPlay.poster ? ' poster="' + escapeHtml(data.videoPlay.poster) + '"' : '';
+        var posterPath = data.videoPlay.poster ? resolveMediaUrl(data.videoPlay.poster) : '';
+        var posterAttr = posterPath ? ' poster="' + escapeHtml(posterPath) + '"' : '';
         var imgStyle = objPosStyle(data.videoPlay.imagePosition);
-        mediaEl.innerHTML = '<video' + imgStyle + ' src="' + escapeHtml(data.videoPlay.video) + '"' + posterAttr + ' controls playsinline preload="auto"></video>';
+        var vpSrc = resolveMediaUrl(data.videoPlay.video) || '';
+        mediaEl.innerHTML = '<video' + imgStyle + ' src="' + escapeHtml(vpSrc) + '"' + posterAttr + ' controls playsinline preload="auto"></video>';
       } else {
         mediaEl.innerHTML = '';
       }
