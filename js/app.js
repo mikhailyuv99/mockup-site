@@ -4,6 +4,7 @@
   var cmsEmbed = /[?&]cmsEmbed=1(?:&|$)/.test(window.location.search);
   var hashChangeBound = false;
   var cmsMediaClickBound = false;
+  var cmsParentOrigin = null;
   var embedIsMultiPage = false;
   /** Page actuellement rendue (embed multi-pages) — peut différer du hash si le parent impose pageSlug. */
   var embedActivePageSlug = '';
@@ -350,7 +351,7 @@
   }
 
   function postUploadRequestToParent(uploadKey) {
-    var po = getTrustedCmsOrigin();
+    var po = cmsParentOrigin || getTrustedCmsOrigin();
     window.parent.postMessage(
       { source: 'cms-site', type: 'CMS_UPLOAD_REQUEST', uploadKey: uploadKey },
       po || '*'
@@ -417,7 +418,7 @@
   }
 
   function postPatchToParent(patch) {
-    var po = getTrustedCmsOrigin();
+    var po = cmsParentOrigin || getTrustedCmsOrigin();
     window.parent.postMessage(
       {
         source: 'cms-site',
@@ -601,19 +602,20 @@
 
   if (cmsEmbed) {
     var trusted = getTrustedCmsOrigin();
+    cmsParentOrigin = trusted;
     injectCmsEditStyles();
     bindCmsMediaClickOnce();
     window.addEventListener('message', function (e) {
       if (e.source !== window.parent) return;
-      var expectedOrigin = getTrustedCmsOrigin();
+      var expectedOrigin = cmsParentOrigin || getTrustedCmsOrigin();
       if (expectedOrigin && !originAllowsCmsParent(e.origin, expectedOrigin)) {
-        console.warn('[CMS embed] postMessage ignoré (origine):', e.origin, '≠', expectedOrigin);
-        return;
+        console.warn('[CMS embed] origine inattendue, fallback sur origine runtime:', e.origin, '(attendu:', expectedOrigin + ')');
       }
       if (!e.data || e.data.source !== 'cms-app' || e.data.type !== 'CMS_CONTENT') return;
       try {
+        cmsParentOrigin = e.origin;
         renderContent(e.data.content, { pageSlug: e.data.pageSlug || undefined });
-        window.parent.postMessage({ source: 'cms-site', type: 'CMS_APPLIED' }, e.origin);
+        window.parent.postMessage({ source: 'cms-site', type: 'CMS_APPLIED' }, cmsParentOrigin || e.origin || '*');
       } catch (err) {
         console.error('CMS embed apply failed:', err);
       }
